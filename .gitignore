@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# SURA — à ajouter au .gitignore existant
+*.wav
+*.m4a
+*.aac
+/models/
+.env
+**/service-account*.json
