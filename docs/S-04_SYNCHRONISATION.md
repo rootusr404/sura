@@ -14,17 +14,21 @@ Les erreurs conservent les données du repository. Le réessai automatique suit
 2, 4, 8, 16, 32, 64 puis 120 secondes maximum. `retry(id)` accepte l'identifiant
 d'un patient ou d'une consultation et relance aussi le parent si nécessaire.
 
-## Blocage : persistance locale
+## Persistance locale intégrée lors de la fusion F-02
 
-**S-04 n'est pas terminé en production.** Aucun schéma Drift ni repository
-Drift n'est présent. Les providers de base utilisent toujours
-`InMemoryPatientRepository` et `InMemoryConsultationRepository`. Les états sont
-mis à jour dans ces repositories, mais ne survivent pas au redémarrage.
-Les tests avec repositories en mémoire ne valident pas la durabilité SQLite.
+Les providers utilisent désormais `DriftPatientRepository` et
+`DriftConsultationRepository`. Les deux repositories implémentent les mises
+à jour atomiques de l'état, des tentatives et des erreurs. La migration SQLite
+v1 vers v2 ajoute les métadonnées patients sans supprimer les données existantes.
 
-## À coordonner avec le membre 1 (F-02)
+`test/drift_sync_integration_test.dart` vérifie les versions concurrentes,
+la migration et la reprise après des échecs avec fermeture/réouverture d'une
+base SQLite sur disque. Le transport de ces tests est simulé : la recette
+Firebase sur appareil et la validation des règles S-05 restent nécessaires.
 
-- Brancher les repositories Drift dans `lib/core/db/repository_providers.dart`.
+## Contrat partagé avec le membre 1 (F-02)
+
+- Les repositories Drift sont branchés dans `lib/core/db/repository_providers.dart`.
 - Persister les données et `syncState`, ainsi que `syncAttempts` et `syncError`
   des patients et des consultations. Ne supprimer aucun enregistrement en cas d'échec d'envoi.
 - Implémenter les méthodes `updateSyncState` déjà déclarées dans les contrats
@@ -43,8 +47,7 @@ Les tests avec repositories en mémoire ne valident pas la durabilité SQLite.
 Les échéances de réessai restent en mémoire; les états et compteurs persistants
 permettront la reprise après redémarrage avec un délai réinitialisé. Aucun
 stockage parallèle n'est introduit en attendant F-02. Les règles Firestore
-(S-05) ne sont pas déployées dans cette tâche. La recette Firebase sur appareil
-et la durabilité Drift restent à réaliser après l'intégration F-02.
+(S-05) ne sont pas déployées dans cette tâche. La recette Firebase sur appareil reste à réaliser après cette intégration.
 
 ## Contrat commun pour les métadonnées locales
 
@@ -69,4 +72,4 @@ Pour Drift, une seule instruction `UPDATE ... WHERE id = ? AND updatedAt = ?`
 doit modifier ensemble `syncState`, `syncAttempts` et `syncError`, sans avancer
 `updatedAt`. `attempts == null` conserve le compteur, `error == null` efface
 l'erreur. Le booléen correspond à la présence d'une ligne mise à jour.
-Les tests en mémoire vérifient ce contrat, pas sa persistance SQLite.
+Les tests en mémoire vérifient le contrat; les tests Drift vérifient aussi sa persistance SQLite.
