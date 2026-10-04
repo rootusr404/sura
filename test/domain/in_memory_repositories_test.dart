@@ -63,4 +63,99 @@ void main() {
     await sub.cancel();
     expect(events, ['consent', 'record']);
   });
+  test('patient : état, tentatives et erreur modifiés atomiquement', () async {
+    final repo = InMemoryPatientRepository();
+    final p = await repo.create(
+      lastName: 'Test',
+      firstName: 'Awa',
+      ageYears: 30,
+      sex: 'F',
+      village: 'Fictif',
+      agentId: 'a1',
+    );
+    expect(
+      await repo.updateSyncState(
+        p.id,
+        SyncState.error,
+        expectedUpdatedAt: p.updatedAt,
+        attempts: 3,
+        error: 'Envoi interrompu',
+      ),
+      isTrue,
+    );
+    final failed = (await repo.getById(p.id))!;
+    expect(failed.syncState, SyncState.error);
+    expect(failed.syncAttempts, 3);
+    expect(failed.syncError, 'Envoi interrompu');
+    expect(
+      await repo.updateSyncState(
+        p.id,
+        SyncState.synced,
+        expectedUpdatedAt: p.updatedAt.add(const Duration(seconds: 1)),
+        attempts: 99,
+      ),
+      isFalse,
+    );
+    expect(await repo.getById(p.id), same(failed));
+    expect(
+      await repo.updateSyncState(
+        p.id,
+        SyncState.synced,
+        expectedUpdatedAt: p.updatedAt,
+      ),
+      isTrue,
+    );
+    final done = (await repo.getById(p.id))!;
+    expect(done.syncState, SyncState.synced);
+    expect(done.syncAttempts, 3);
+    expect(done.syncError, isNull);
+    expect(done.updatedAt, p.updatedAt);
+    expect(done.fullName, p.fullName);
+  });
+
+  test(
+    'consultation : version ancienne ne modifie aucune métadonnée',
+    () async {
+      final repo = InMemoryConsultationRepository();
+      final c = await repo.createDraft(patientId: 'p', agentId: 'a1');
+      expect(
+        await repo.updateSyncState(
+          c.id,
+          SyncState.error,
+          expectedUpdatedAt: c.updatedAt,
+          attempts: 2,
+          error: 'Envoi interrompu',
+        ),
+        isTrue,
+      );
+      final failed = (await repo.getById(c.id))!;
+      expect(failed.syncState, SyncState.error);
+      expect(failed.syncAttempts, 2);
+      expect(failed.syncError, 'Envoi interrompu');
+      expect(
+        await repo.updateSyncState(
+          c.id,
+          SyncState.synced,
+          expectedUpdatedAt: c.updatedAt.add(const Duration(seconds: 1)),
+          attempts: 99,
+        ),
+        isFalse,
+      );
+      expect(await repo.getById(c.id), same(failed));
+      expect(
+        await repo.updateSyncState(
+          c.id,
+          SyncState.synced,
+          expectedUpdatedAt: c.updatedAt,
+        ),
+        isTrue,
+      );
+      final done = (await repo.getById(c.id))!;
+      expect(done.syncState, SyncState.synced);
+      expect(done.syncAttempts, 2);
+      expect(done.syncError, isNull);
+      expect(done.updatedAt, c.updatedAt);
+      expect(done.patientId, c.patientId);
+    },
+  );
 }

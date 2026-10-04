@@ -91,6 +91,26 @@ class InMemoryPatientRepository implements PatientRepository {
   Future<PatientRecord?> getById(String id) async => _items[id];
 
   @override
+  Future<bool> updateSyncState(
+    String id,
+    SyncState state, {
+    required DateTime expectedUpdatedAt,
+    int? attempts,
+    String? error,
+  }) async {
+    final record = _items[id];
+    if (record == null || record.updatedAt != expectedUpdatedAt) return false;
+    _items[id] = record.copyWith(
+      syncState: state,
+      syncAttempts: attempts,
+      syncError: error,
+      clearSyncError: error == null,
+    );
+    _changes.notify();
+    return true;
+  }
+
+  @override
   Stream<PatientRecord?> watchById(String id) =>
       _changes.watch(() => _items[id]);
 
@@ -162,8 +182,35 @@ class InMemoryConsultationRepository implements ConsultationRepository {
 
   @override
   Future<void> save(ConsultationRecord record) async {
-    _items[record.id] = record;
+    _items[record.id] = record.status == ConsultationStatus.saved
+        ? record.copyWith(
+            syncState: SyncState.pending,
+            clearSyncError: true,
+            updatedAt: record.updatedAt,
+          )
+        : record;
     _changes.notify();
+  }
+
+  @override
+  Future<bool> updateSyncState(
+    String id,
+    SyncState state, {
+    required DateTime expectedUpdatedAt,
+    int? attempts,
+    String? error,
+  }) async {
+    final record = _items[id];
+    if (record == null || record.updatedAt != expectedUpdatedAt) return false;
+    _items[id] = record.copyWith(
+      syncState: state,
+      syncAttempts: attempts,
+      syncError: error,
+      clearSyncError: error == null,
+      updatedAt: record.updatedAt,
+    );
+    _changes.notify();
+    return true;
   }
 
   @override
