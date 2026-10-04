@@ -15,6 +15,7 @@ import 'package:sura/features/consultation/review/recap_screen.dart';
 import 'package:sura/features/consultation/review/saved_screen.dart';
 import 'package:sura/features/consultation/review/urgency_screen.dart';
 import 'package:sura/features/consultation/review/validation_screen.dart';
+import 'package:sura/features/consultation/view/consultation_detail_screen.dart';
 import 'package:sura/features/home/home_screen.dart';
 import 'package:sura/features/home/shell_scaffold.dart';
 import 'package:sura/features/patient/patient_create_screen.dart';
@@ -129,6 +130,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/consultation/:id/saved',
         builder: (_, s) => SavedScreen(consultationId: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/consultation/:id/view',
+        builder: (_, s) =>
+            ConsultationDetailScreen(consultationId: s.pathParameters['id']!),
       ),
     ],
   );

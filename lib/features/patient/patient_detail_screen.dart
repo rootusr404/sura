@@ -168,11 +168,13 @@ class _ConsultationRow extends StatelessWidget {
         child: ListTile(
           // Un brouillon se reprend là où il a été laissé.
           onTap: saved
-              ? null
+              ? () => context.push('/consultation/${c.id}/view')
               : () => context.go('/consultation/${c.id}/${c.step}'),
           title: Text(formatDateTime(c.createdAt)),
           subtitle: Text(
-            saved ? 'Enregistrée' : 'Brouillon — toucher pour reprendre',
+            saved
+                ? 'Enregistrée — toucher pour consulter'
+                : 'Brouillon — toucher pour reprendre',
           ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
