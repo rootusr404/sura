@@ -47,7 +47,16 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
     _textController = TextEditingController(text: widget.initialText);
 
     if (widget.initialText.isEmpty) {
-      _startTranscription();
+      final mockText = _transcriptionService is LocalTranscriptionService
+          ? (_transcriptionService as LocalTranscriptionService)
+                .mockTextOverride
+          : null;
+
+      if (mockText != null && mockText.isNotEmpty) {
+        _textController.text = mockText;
+      } else {
+        _startTranscription();
+      }
     }
   }
 
@@ -60,7 +69,9 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
     });
 
     try {
-      final text = await _transcriptionService.transcribe(widget.audioPath ?? '');
+      final text = await _transcriptionService.transcribe(
+        widget.audioPath ?? '',
+      );
       if (mounted) {
         setState(() {
           _textController.text = text;
@@ -81,7 +92,8 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
       if (mounted) {
         setState(() {
           _hasEngineError = true;
-          _errorMessage = "Erreur de traitement : bascule vers la saisie manuelle.";
+          _errorMessage =
+              "Erreur de traitement : bascule vers la saisie manuelle.";
           _isLoading = false;
           _isEditing = true;
         });
@@ -128,7 +140,10 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
             children: [
               // Bandeau proposition SŪRA (Écran 22)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: SuraTheme.triageModerateBg,
                   borderRadius: BorderRadius.circular(10),
@@ -174,7 +189,7 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
 
               // Cas de chargement / progression hors ligne
               if (_isLoading) ...[
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
                 Center(
                   child: Column(
                     children: [
@@ -182,7 +197,7 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
                         color: SuraTheme.tealPrimary,
                         strokeWidth: 3,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Text(
                         'Transcription locale en cours... (${(_progress * 100).toInt()}%)',
                         style: const TextStyle(
@@ -191,18 +206,132 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
                           color: SuraTheme.slateMuted,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Mode avion actif · Traitement 100 % hors ligne',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: SuraTheme.slateMuted,
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Zone de texte transcription : Modifiable (R4)
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _isEditing
+                          ? SuraTheme.tealPrimary
+                          : SuraTheme.borderLine,
+                      width: _isEditing ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'Texte de la consultation',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: SuraTheme.slateMuted,
+                            ),
+                          ),
+                          const Spacer(),
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _isEditing = !_isEditing;
+                              });
+                            },
+                            child: Text(
+                              _isEditing
+                                  ? '✓ Terminer l\'édition'
+                                  : '✎ Modifier le texte (R4)',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: SuraTheme.tealPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: _textController,
+                          enabled: _isEditing || !_isLoading,
+                          maxLines: null,
+                          expands: true,
+                          textAlignVertical: TextAlignVertical.top,
+                          style: const TextStyle(
+                            fontSize: 14.5,
+                            height: 1.45,
+                            color: SuraTheme.ink,
+                          ),
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            hintText:
+                                'Saisissez ou dictez les symptômes et observations de la consultation...',
+                            hintStyle: TextStyle(
+                              color: SuraTheme.slateMuted,
+                              fontSize: 13.5,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Spacer(),
+              ),
+
+              const SizedBox(height: 10),
+
+              // Lecteur audio local
+              if (widget.audioPath != null && widget.audioPath!.isNotEmpty)
+                InkWell(
+                  onTap: _togglePlayAudio,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: SuraTheme.softTeal,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isPlayingAudio
+                              ? Icons.pause_circle_filled
+                              : Icons.play_circle_filled,
+                          color: SuraTheme.tealPrimary,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _isPlayingAudio
+                              ? 'Lecture audio en cours...'
+                              : '▶ Écouter l’enregistrement audio local',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: SuraTheme.tealPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 12),
+
+              if (_isLoading)
                 OutlinedButton(
                   onPressed: () {
                     setState(() {
@@ -212,135 +341,26 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
                   },
                   child: const Text('Passer directement en saisie manuelle'),
                 ),
-                const SizedBox(height: 8),
-              ] else ...[
-                // Zone de texte transcription : Modifiable (R4)
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _isEditing ? SuraTheme.tealPrimary : SuraTheme.borderLine,
-                        width: _isEditing ? 1.5 : 1.0,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Text(
-                              'Texte de la consultation',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: SuraTheme.slateMuted,
-                              ),
-                            ),
-                            const Spacer(),
-                            InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _isEditing = !_isEditing;
-                                });
-                              },
-                              child: Text(
-                                _isEditing ? '✓ Terminer l\'édition' : '✎ Modifier le texte (R4)',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: SuraTheme.tealPrimary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 16),
-                        Expanded(
-                          child: TextField(
-                            controller: _textController,
-                            enabled: _isEditing,
-                            maxLines: null,
-                            expands: true,
-                            textAlignVertical: TextAlignVertical.top,
-                            style: const TextStyle(
-                              fontSize: 14.5,
-                              height: 1.45,
-                              color: SuraTheme.ink,
-                            ),
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              hintText: 'Saisissez ou dictez les symptômes et observations de la consultation...',
-                              hintStyle: TextStyle(
-                                color: SuraTheme.slateMuted,
-                                fontSize: 13.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+
+              // Boutons d'action : "Confirmer et continuer" & "Modifier / Saisie manuelle"
+              ElevatedButton(
+                onPressed: () {
+                  widget.onConfirmTranscription(_textController.text.trim());
+                },
+                child: const Text('Confirmer et continuer'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () {
+                  setState(() {
+                    _isEditing = !_isEditing;
+                  });
+                },
+                child: Text(
+                  _isEditing ? 'Verrouiller le texte' : 'Modifier le texte',
                 ),
-
-                const SizedBox(height: 10),
-
-                // Lecteur audio local
-                if (widget.audioPath != null && widget.audioPath!.isNotEmpty)
-                  InkWell(
-                    onTap: _togglePlayAudio,
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: SuraTheme.softTeal,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _isPlayingAudio ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                            color: SuraTheme.tealPrimary,
-                            size: 22,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _isPlayingAudio
-                                ? 'Lecture audio en cours...'
-                                : '▶ Écouter l’enregistrement audio local',
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: SuraTheme.tealPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                const SizedBox(height: 12),
-
-                // Boutons d'action : "Confirmer et continuer" & "Modifier / Saisie manuelle"
-                ElevatedButton(
-                  onPressed: () {
-                    widget.onConfirmTranscription(_textController.text.trim());
-                  },
-                  child: const Text('Confirmer et continuer'),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      _isEditing = !_isEditing;
-                    });
-                  },
-                  child: Text(_isEditing ? 'Verrouiller le texte' : 'Modifier le texte'),
-                ),
-                const SizedBox(height: 8),
-              ],
+              ),
+              const SizedBox(height: 8),
             ],
           ),
         ),

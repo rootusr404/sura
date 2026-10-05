@@ -88,38 +88,69 @@ class InformationExtractor implements StructuringService {
   String _extractChiefComplaint(String text) {
     // Ordre de priorité des signes selon PCIME / OMS
     if (_hasAny(text, [
-      'traumatisme', 'blessure', 'accident', 'chute', 'fracture', 'plaie',
-      'brûlure', 'morsure', 'coupure'
+      'traumatisme',
+      'blessure',
+      'accident',
+      'chute',
+      'fracture',
+      'plaie',
+      'brûlure',
+      'morsure',
+      'coupure',
     ])) {
       return 'trauma';
     }
 
     if (_hasAny(text, [
-      'diarrhée', 'diarrhee', 'selles liquides', 'selles fréquentes',
-      'gastro', 'déshydratation'
+      'diarrhée',
+      'diarrhee',
+      'selles liquides',
+      'selles fréquentes',
+      'gastro',
+      'déshydratation',
     ])) {
       return 'diarrhea';
     }
 
     if (_hasAny(text, [
-      'enceinte', 'grossesse', 'prénatal', 'cpn', 'accouchement',
-      'contractions', 'saignement obstétrical'
+      'enceinte',
+      'grossesse',
+      'prénatal',
+      'cpn',
+      'accouchement',
+      'contractions',
+      'saignement obstétrical',
     ])) {
       return 'pregnancy';
     }
 
     if (_hasAny(text, [
-      'toux', 'tousse', 'expectoration', 'crachats', 'sifflement',
-      'dyspnée', 'bronchite', 'pneumonie', 'respiration difficile'
+      'fièvre',
+      'fievre',
+      'chaud',
+      'chaude',
+      'hyperthermie',
+      'frissons',
+      'paludisme',
+      'palu',
+      'fébrile',
+      'febrile',
     ])) {
-      return 'cough';
+      return 'fever';
     }
 
     if (_hasAny(text, [
-      'fièvre', 'fievre', 'chaud', 'chaude', 'hyperthermie', 'frissons',
-      'paludisme', 'palu', 'fébrile', 'febrile'
+      'toux',
+      'tousse',
+      'expectoration',
+      'crachats',
+      'sifflement',
+      'dyspnée',
+      'bronchite',
+      'pneumonie',
+      'respiration difficile',
     ])) {
-      return 'fever';
+      return 'cough';
     }
 
     return 'other';
@@ -149,6 +180,17 @@ class InformationExtractor implements StructuringService {
 
   /// Extrait la durée de l'affection en nombre de jours
   int? _extractDurationDays(String text) {
+    // 0. Détection explicite des jours avant les indications vagues de "ce matin".
+    final dayRegex = RegExp(
+      r'(?:depuis|pendant|durée\s*(?:de|:)?)\s*(\d+)\s*(?:jours?|j\b)',
+      caseSensitive: false,
+    );
+    final dayMatch = dayRegex.firstMatch(text);
+    if (dayMatch != null) {
+      final days = int.tryParse(dayMatch.group(1) ?? '');
+      if (days != null) return days;
+    }
+
     // 1. Détection "depuis hier" -> 1 jour
     if (text.contains('depuis hier') || text.contains('commencé hier')) {
       return 1;
@@ -182,18 +224,7 @@ class InformationExtractor implements StructuringService {
       }
     }
 
-    // 4. Détection par nombre de jours : "depuis 3 jours", "3 j", "3 jours"
-    final dayRegex = RegExp(
-      r'(?:depuis|pendant|durée\s*(?:de|:)?)\s*(\d+)\s*(?:jours?|j\b)',
-      caseSensitive: false,
-    );
-    final dayMatch = dayRegex.firstMatch(text);
-    if (dayMatch != null) {
-      final days = int.tryParse(dayMatch.group(1) ?? '');
-      if (days != null) return days;
-    }
-
-    // 5. Pattern simplifié : "(\d+)\s*jours"
+    // 4. Pattern simplifié : "(\d+)\s*jours"
     final simpleDayRegex = RegExp(r'(\d+)\s*jours?', caseSensitive: false);
     final simpleDayMatch = simpleDayRegex.firstMatch(text);
     if (simpleDayMatch != null) {
@@ -296,10 +327,7 @@ class InformationExtractor implements StructuringService {
   /// Extrait l'âge en mois
   int? _extractAgeMonths(String text) {
     // 1. Détection "X mois" (ex: 8 mois)
-    final monthRegex = RegExp(
-      r'(\d+)\s*mois',
-      caseSensitive: false,
-    );
+    final monthRegex = RegExp(r'(\d+)\s*mois', caseSensitive: false);
     final monthMatch = monthRegex.firstMatch(text);
     if (monthMatch != null) {
       final val = int.tryParse(monthMatch.group(1) ?? '');
@@ -309,10 +337,7 @@ class InformationExtractor implements StructuringService {
     }
 
     // 2. Détection "X an(s)" (ex: 3 ans -> 36 mois)
-    final yearRegex = RegExp(
-      r'(\d+)\s*(?:ans?|année)',
-      caseSensitive: false,
-    );
+    final yearRegex = RegExp(r'(\d+)\s*(?:ans?|année)', caseSensitive: false);
     final yearMatch = yearRegex.firstMatch(text);
     if (yearMatch != null) {
       final val = int.tryParse(yearMatch.group(1) ?? '');
@@ -330,8 +355,12 @@ class InformationExtractor implements StructuringService {
       return false;
     }
     if (_hasAny(text, [
-      'enceinte', 'grossesse', 'attend un enfant', 'femme enceinte',
-      'patiente enceinte', 'cpn'
+      'enceinte',
+      'grossesse',
+      'attend un enfant',
+      'femme enceinte',
+      'patiente enceinte',
+      'cpn',
     ])) {
       return true;
     }
@@ -342,7 +371,11 @@ class InformationExtractor implements StructuringService {
   List<String> _extractSymptoms(String text) {
     final List<String> list = [];
 
-    void checkSymptom(String label, List<String> keywords, [List<String> negations = const []]) {
+    void checkSymptom(
+      String label,
+      List<String> keywords, [
+      List<String> negations = const [],
+    ]) {
       // Si une négation est présente dans le texte pour ce symptôme, on l'ignore
       for (final neg in negations) {
         if (text.contains(neg)) return;
@@ -356,31 +389,61 @@ class InformationExtractor implements StructuringService {
 
     checkSymptom(
       'Fièvre',
-      ['fièvre', 'fievre', 'chaud', 'chaude', 'hyperthermie', 'fébrile', 'febrile'],
-      ['pas de fièvre', 'sans fièvre', 'absence de fièvre', 'apyrétique', 'pas de fievre'],
+      [
+        'fièvre',
+        'fievre',
+        'chaud',
+        'chaude',
+        'hyperthermie',
+        'fébrile',
+        'febrile',
+      ],
+      [
+        'pas de fièvre',
+        'sans fièvre',
+        'absence de fièvre',
+        'apyrétique',
+        'pas de fievre',
+      ],
     );
 
-    checkSymptom('Frissons', ['frisson', 'frissons'], ['pas de frisson', 'sans frisson']);
+    checkSymptom(
+      'Frissons',
+      ['frisson', 'frissons'],
+      ['pas de frisson', 'sans frisson'],
+    );
     checkSymptom(
       'Maux de tête (céphalées)',
-      ['maux de tête', 'mal de tete', 'maux de tete', 'céphalée', 'cephalee', 'céphalées', 'cephalees'],
+      [
+        'maux de tête',
+        'mal de tete',
+        'maux de tete',
+        'céphalée',
+        'cephalee',
+        'céphalées',
+        'cephalees',
+      ],
       ['pas de maux de tête', 'sans céphalée'],
     );
-    checkSymptom(
-      'Toux sèche',
-      ['toux sèche', 'toux seche'],
-    );
-    checkSymptom(
-      'Toux grasse',
-      ['toux grasse', 'expectoration', 'expectorations', 'crachats'],
-    );
-    checkSymptom(
-      'Toux',
-      ['toux', 'tousse'],
-      ['pas de toux', 'sans toux'],
-    );
-    checkSymptom('Courbatures', ['courbature', 'courbatures', 'douleurs musculaires']);
-    checkSymptom('Fatigue (asthénie)', ['fatigue', 'asthénie', 'faiblesse générale', 'épuisement']);
+    checkSymptom('Toux sèche', ['toux sèche', 'toux seche']);
+    checkSymptom('Toux grasse', [
+      'toux grasse',
+      'expectoration',
+      'expectorations',
+      'crachats',
+    ]);
+    checkSymptom('Toux', ['toux', 'tousse'], ['pas de toux', 'sans toux']);
+    checkSymptom('Courbatures', [
+      'courbature',
+      'courbatures',
+      'douleurs musculaires',
+    ]);
+    checkSymptom('Fatigue (asthénie)', [
+      'fatigue',
+      'asthénie',
+      'faiblesse générale',
+      'épuisement',
+    ]);
     checkSymptom(
       'Nausées',
       ['nausée', 'nausee', 'nausées', 'nausees'],
@@ -398,19 +461,37 @@ class InformationExtractor implements StructuringService {
     );
     checkSymptom(
       'Douleurs abdominales',
-      ['mal au ventre', 'douleur abdominale', 'douleurs abdominales', 'maux de ventre', 'douleur au ventre'],
+      [
+        'mal au ventre',
+        'douleur abdominale',
+        'douleurs abdominales',
+        'maux de ventre',
+        'douleur au ventre',
+      ],
       ['pas de douleur abdominale'],
     );
-    checkSymptom(
-      'Douleur pelvienne',
-      ['douleur pelvienne', 'douleurs pelviennes', 'bas ventre'],
-    );
+    checkSymptom('Douleur pelvienne', [
+      'douleur pelvienne',
+      'douleurs pelviennes',
+      'bas ventre',
+    ]);
     checkSymptom(
       'Difficulté respiratoire',
-      ['dyspnée', 'dyspnee', 'étouffement', 'respiration rapide', 'sifflement', 'tirage'],
+      [
+        'dyspnée',
+        'dyspnee',
+        'étouffement',
+        'respiration rapide',
+        'sifflement',
+        'tirage',
+      ],
       ['respiration normale', 'sans dyspnée'],
     );
-    checkSymptom('Convulsions', ['convulsion', 'convulsions', 'crise convulsive']);
+    checkSymptom('Convulsions', [
+      'convulsion',
+      'convulsions',
+      'crise convulsive',
+    ]);
 
     // Nettoyage : si "Toux sèche" ou "Toux grasse" est présente, on peut garder la précision
     if (list.contains('Toux sèche') && list.contains('Toux')) {
@@ -426,8 +507,12 @@ class InformationExtractor implements StructuringService {
   /// Extrait les allergies mentionnées
   List<String> _extractAllergies(String text) {
     if (_hasAny(text, [
-      'pas d\'allergie', 'aucune allergie', 'sans allergie',
-      'allergies: non', 'pas d allergie connue', 'pas d\'allergie connue'
+      'pas d\'allergie',
+      'aucune allergie',
+      'sans allergie',
+      'allergies: non',
+      'pas d allergie connue',
+      'pas d\'allergie connue',
     ])) {
       return const [];
     }
@@ -455,8 +540,16 @@ class InformationExtractor implements StructuringService {
     for (final match in matches) {
       final item = match.group(1)?.trim();
       if (item != null && item.length > 2) {
-        final capitalized = item[0].toUpperCase() + item.substring(1).toLowerCase();
-        if (!['Pas', 'Aucune', 'Non', 'La', 'Le', 'Les'].contains(capitalized) &&
+        final capitalized =
+            item[0].toUpperCase() + item.substring(1).toLowerCase();
+        if (![
+              'Pas',
+              'Aucune',
+              'Non',
+              'La',
+              'Le',
+              'Les',
+            ].contains(capitalized) &&
             !allergies.contains(capitalized)) {
           allergies.add(capitalized);
         }
@@ -469,8 +562,12 @@ class InformationExtractor implements StructuringService {
   /// Extrait les médicaments mentionnés
   List<String> _extractMedications(String text) {
     if (_hasAny(text, [
-      'aucun médicament', 'aucun traitement', 'pas de traitement',
-      'sans traitement', 'pas de médicament', 'aucun medicament'
+      'aucun médicament',
+      'aucun traitement',
+      'pas de traitement',
+      'sans traitement',
+      'pas de médicament',
+      'aucun medicament',
     ])) {
       return const [];
     }
@@ -483,10 +580,25 @@ class InformationExtractor implements StructuringService {
       }
     }
 
-    checkMed('Paracétamol', ['paracétamol', 'paracetamol', 'doliprane', 'efferalgan']);
-    checkMed('Artéméther-Luméfantrine (CTA)', ['artéméther', 'artemether', 'luméfantrine', 'coartem', 'cta']);
+    checkMed('Paracétamol', [
+      'paracétamol',
+      'paracetamol',
+      'doliprane',
+      'efferalgan',
+    ]);
+    checkMed('Artéméther-Luméfantrine (CTA)', [
+      'artéméther',
+      'artemether',
+      'luméfantrine',
+      'coartem',
+      'cta',
+    ]);
     checkMed('Amoxicilline', ['amoxicilline', 'amoxil', 'clamoxyl']);
-    checkMed('SRO (Sels de réhydratation)', ['sro', 'sels de réhydratation', 'rehydratation']);
+    checkMed('SRO (Sels de réhydratation)', [
+      'sro',
+      'sels de réhydratation',
+      'rehydratation',
+    ]);
     checkMed('Zinc', ['zinc']);
     checkMed('Cotrimoxazole', ['cotrimoxazole', 'bactrim']);
     checkMed('Ibuprofène', ['ibuprofène', 'ibuprofene', 'advil']);
@@ -505,11 +617,24 @@ class InformationExtractor implements StructuringService {
       }
     }
 
-    checkAnt('Allaitement en cours', ['allaite', 'allaitement', 'nourrice', 'nourrissant']);
-    checkAnt('Drépanocytose', ['drépanocytose', 'drepanocytose', 'drépanocytaire']);
+    checkAnt('Allaitement en cours', [
+      'allaite',
+      'allaitement',
+      'nourrice',
+      'nourrissant',
+    ]);
+    checkAnt('Drépanocytose', [
+      'drépanocytose',
+      'drepanocytose',
+      'drépanocytaire',
+    ]);
     checkAnt('Asthme', ['asthme', 'asthmatique']);
     checkAnt('Diabète', ['diabète', 'diabete', 'diabétique']);
-    checkAnt('Hypertension artérielle', ['hypertension', 'hta', 'tension élevée']);
+    checkAnt('Hypertension artérielle', [
+      'hypertension',
+      'hta',
+      'tension élevée',
+    ]);
     checkAnt('Malnutrition', ['malnutrition', 'émaciation', 'maigreur sévère']);
 
     return antecedents;

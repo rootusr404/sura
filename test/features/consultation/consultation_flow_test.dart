@@ -25,7 +25,10 @@ class MockAudioRecorderService implements AudioRecorderServiceInterface {
   Future<bool> requestPermission() async => permissionGranted;
 
   @override
-  Future<String> startRecording({required bool consentGiven, String? customPath}) async {
+  Future<String> startRecording({
+    required bool consentGiven,
+    String? customPath,
+  }) async {
     if (!consentGiven) {
       throw const ConsentRequiredException();
     }
@@ -54,80 +57,97 @@ class MockAudioRecorderService implements AudioRecorderServiceInterface {
 
 void main() {
   group('Membre 2 — Tests d\'intégration du parcours de Consultation', () {
-    testWidgets('1. Écran de Consentement : Refus empêche l\'audio et oriente vers saisie manuelle',
-        (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: SuraTheme.themeData,
-          home: const ConsultationFlowScreen(),
-        ),
-      );
-
-      // Vérification des éléments de consentement
-      expect(find.text('Consentement du patient'), findsOneWidget);
-      expect(find.text('L’audio reste strictement sur cet appareil'), findsOneWidget);
-      expect(find.text('Refuser (Saisie manuelle)'), findsOneWidget);
-      expect(find.text('Accepter'), findsOneWidget);
-
-      // Clic sur Refuser
-      await tester.tap(find.text('Refuser (Saisie manuelle)'));
-      await tester.pumpAndSettle();
-
-      // On bascule directement en saisie manuelle (TranscriptionScreen) sans créer d'audio
-      expect(find.text('Texte de la consultation'), findsOneWidget);
-      expect(find.text('Confirmer et continuer'), findsOneWidget);
-    });
-
-    testWidgets('2. Écran de Consentement : Accepter passe à l\'enregistrement audio (Écran 21)',
-        (tester) async {
-      final mockRecorder = MockAudioRecorderService();
-
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: SuraTheme.themeData,
-          home: ConsultationFlowScreen(
-            customRecorderService: mockRecorder,
+    testWidgets(
+      '1. Écran de Consentement : Refus empêche l\'audio et oriente vers saisie manuelle',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: SuraTheme.themeData,
+            home: const ConsultationFlowScreen(),
           ),
-        ),
-      );
+        );
 
-      // Clic sur Accepter
-      await tester.tap(find.text('Accepter'));
-      await tester.pumpAndSettle();
+        // Vérification des éléments de consentement
+        expect(find.text('Consentement du patient'), findsOneWidget);
+        expect(
+          find.text('L’audio reste strictement sur cet appareil'),
+          findsOneWidget,
+        );
+        expect(find.text('Refuser (Saisie manuelle)'), findsOneWidget);
+        expect(find.text('Accepter'), findsOneWidget);
 
-      // Vérification de l'écran d'enregistrement audio (C-02)
-      expect(find.byType(AudioRecordingScreen), findsOneWidget);
-      expect(find.text('Appuyez pour arrêter'), findsOneWidget);
-      expect(find.text('L’audio est traité sur l’appareil. Rien n’est transmis.'), findsOneWidget);
-    });
+        // Clic sur Refuser
+        await tester.tap(find.text('Refuser (Saisie manuelle)'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 150));
 
-    testWidgets('3. Règle R3 : Blocage si tentative d\'enregistrement sans consentement',
-        (tester) async {
-      final mockRecorder = MockAudioRecorderService();
+        // On bascule directement en saisie manuelle (TranscriptionScreen) sans créer d'audio
+        expect(find.text('Texte de la consultation'), findsOneWidget);
+        expect(find.text('Confirmer et continuer'), findsOneWidget);
+      },
+    );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: SuraTheme.themeData,
-          home: AudioRecordingScreen(
-            consentGiven: false, // Refusé ou non accordé
-            recorderService: mockRecorder,
-            onRecordingComplete: (_) {},
-            onManualInputFallback: () {},
-            onConsentMissing: () {},
+    testWidgets(
+      '2. Écran de Consentement : Accepter passe à l\'enregistrement audio (Écran 21)',
+      (tester) async {
+        final mockRecorder = MockAudioRecorderService();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: SuraTheme.themeData,
+            home: ConsultationFlowScreen(customRecorderService: mockRecorder),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
 
-      // Vérification que l'alerte R3 s'affiche et bloque
-      expect(find.text('Consentement obligatoire (R3)'), findsOneWidget);
-      expect(find.text('Passer en saisie manuelle sans audio'), findsOneWidget);
-      expect(find.text('Appuyez pour arrêter'), findsNothing);
-    });
+        // Clic sur Accepter
+        await tester.tap(find.text('Accepter'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
 
-    testWidgets('4. État F7 : Refus de microphone propose la saisie manuelle',
-        (tester) async {
-      final mockRecorder = MockAudioRecorderService()..permissionGranted = false;
+        // Vérification de l'écran d'enregistrement audio (C-02)
+        expect(find.byType(AudioRecordingScreen), findsOneWidget);
+        expect(find.text('Appuyez pour arrêter'), findsOneWidget);
+        expect(
+          find.text('L’audio est traité sur l’appareil. Rien n’est transmis.'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      '3. Règle R3 : Blocage si tentative d\'enregistrement sans consentement',
+      (tester) async {
+        final mockRecorder = MockAudioRecorderService();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: SuraTheme.themeData,
+            home: AudioRecordingScreen(
+              consentGiven: false, // Refusé ou non accordé
+              recorderService: mockRecorder,
+              onRecordingComplete: (_) {},
+              onManualInputFallback: () {},
+              onConsentMissing: () {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Vérification que l'alerte R3 s'affiche et bloque
+        expect(find.text('Consentement obligatoire (R3)'), findsOneWidget);
+        expect(
+          find.text('Passer en saisie manuelle sans audio'),
+          findsOneWidget,
+        );
+        expect(find.text('Appuyez pour arrêter'), findsNothing);
+      },
+    );
+
+    testWidgets('4. État F7 : Refus de microphone propose la saisie manuelle', (
+      tester,
+    ) async {
+      final mockRecorder = MockAudioRecorderService()
+        ..permissionGranted = false;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -141,15 +161,17 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Vérification écran F7
       expect(find.text('Microphone non autorisé'), findsOneWidget);
       expect(find.text('Saisir sans enregistrement (Repli)'), findsOneWidget);
     });
 
-    testWidgets('5. Règle R4 : Transcription modifiable par l\'agent',
-        (tester) async {
+    testWidgets('5. Règle R4 : Transcription modifiable par l\'agent', (
+      tester,
+    ) async {
       final service = LocalTranscriptionService(
         mockTextOverride: 'Patiente avec fièvre 39.4°C depuis 3 jours.',
       );
@@ -167,37 +189,43 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
 
       // Vérification du texte et de la modification
       expect(find.text('✎ Modifier le texte (R4)'), findsOneWidget);
 
       // L'agent appuie sur modifier
       await tester.tap(find.text('✎ Modifier le texte (R4)'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('✓ Terminer l\'édition'), findsOneWidget);
 
       // Confirmation
       await tester.tap(find.text('Confirmer et continuer'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(confirmedText, contains('fièvre 39.4°C'));
     });
 
-    testWidgets('6. Règle R5 : Informations structurées modifiables',
-        (tester) async {
+    testWidgets('6. Règle R5 : Informations structurées modifiables', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: SuraTheme.themeData,
           home: StructuredInfoScreen(
-            rawTranscript: 'Patiente présentant une fièvre à 39,4 °C depuis 3 jours.',
+            rawTranscript:
+                'Patiente présentant une fièvre à 39,4 °C depuis 3 jours.',
             onValidated: (_) {},
           ),
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 120));
 
       expect(find.byType(StructuredInfoScreen), findsOneWidget);
       expect(find.text('Motif principal'), findsOneWidget);
