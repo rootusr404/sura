@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sura/features/auth/screens/forgot_password_screen.dart';
@@ -23,13 +27,67 @@ import 'package:sura/features/patient/patient_detail_screen.dart';
 import 'package:sura/features/patient/patients_screen.dart';
 import 'package:sura/features/patient/qr_scan_screen.dart';
 import 'package:sura/features/settings/settings_screen.dart';
+import 'package:sura/features/auth/providers/auth_providers.dart';
 
-// PROPRIÉTAIRE : Membre 1. Toutes les routes sont déjà déclarées : pour construire un
-// écran, remplacez le CONTENU de son fichier, pas ce routeur.
-// Exception : Membre 4 peut ajouter la logique `redirect` (garde d'authentification).
+// PROPRIÉTAIRE : Membre 1. Toutes les routes sont déjà déclarées : pour
+// construire un écran, remplacez le CONTENU de son fichier, pas ce routeur.
+// Exceptions : Membre 4 peut ajouter la logique `redirect` (garde d'authentification),
+// Membre 1 la coque de navigation (F-03).
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier(FirebaseAuth auth) {
+    _subscription = auth.authStateChanges().listen((_) {
+      notifyListeners();
+    });
+  }
+
+  late final StreamSubscription<User?> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
+  final auth = FirebaseAuth.instance;
+  final authRefresh = _AuthRefreshNotifier(auth);
+  ref.onDispose(authRefresh.dispose);
+  final pinService = ref.read(pinServiceProvider);
+  final pinSession = ref.read(pinSessionProvider);
+
   return GoRouter(
     initialLocation: '/home',
+    refreshListenable: Listenable.merge([authRefresh, pinSession]),
+    redirect: (context, state) async {
+      final path = state.matchedLocation;
+      final isPublic =
+          path == '/login' || path == '/register' || path == '/forgot';
+      final isSignedIn = auth.currentUser != null;
+
+      if (!isSignedIn) {
+        return isPublic ? null : '/login';
+      }
+
+      final hasPin = await pinService.hasPin;
+
+      if (!hasPin && path != '/pin-setup') return '/pin-setup';
+
+      if (hasPin && !pinSession.isUnlocked && path != '/unlock') {
+        return '/unlock';
+      }
+
+      if (pinSession.isUnlocked &&
+          (path == '/login' ||
+              path == '/register' ||
+              path == '/forgot' ||
+              path == '/pin-setup' ||
+              path == '/unlock')) {
+        return '/home';
+      }
+
+      return null;
+    },
     routes: [
       // Coque de navigation : Accueil | Patients | [Consulter] | Paramètres.
       StatefulShellRoute.indexedStack(
@@ -90,46 +148,48 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/consultation/:id/consent',
-        builder: (_, s) =>
-            ConsentScreen(consultationId: s.pathParameters['id']!),
+        builder: (_, state) =>
+            ConsentScreen(consultationId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/consultation/:id/record',
-        builder: (_, s) =>
-            RecordingScreen(consultationId: s.pathParameters['id']!),
+        builder: (_, state) =>
+            RecordingScreen(consultationId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/consultation/:id/transcript',
-        builder: (_, s) =>
-            TranscriptScreen(consultationId: s.pathParameters['id']!),
+        builder: (_, state) =>
+            TranscriptScreen(consultationId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/consultation/:id/structured',
-        builder: (_, s) =>
-            StructuredScreen(consultationId: s.pathParameters['id']!),
+        builder: (_, state) =>
+            StructuredScreen(consultationId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/consultation/:id/missing',
-        builder: (_, s) =>
-            MissingScreen(consultationId: s.pathParameters['id']!),
+        builder: (_, state) =>
+            MissingScreen(consultationId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/consultation/:id/urgency',
-        builder: (_, s) =>
-            UrgencyScreen(consultationId: s.pathParameters['id']!),
+        builder: (_, state) =>
+            UrgencyScreen(consultationId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/consultation/:id/recap',
-        builder: (_, s) => RecapScreen(consultationId: s.pathParameters['id']!),
+        builder: (_, state) =>
+            RecapScreen(consultationId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/consultation/:id/validate',
-        builder: (_, s) =>
-            ValidationScreen(consultationId: s.pathParameters['id']!),
+        builder: (_, state) =>
+            ValidationScreen(consultationId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/consultation/:id/saved',
-        builder: (_, s) => SavedScreen(consultationId: s.pathParameters['id']!),
+        builder: (_, state) =>
+            SavedScreen(consultationId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/consultation/:id/view',

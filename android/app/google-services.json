@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "636441610129",
+    "project_id": "sura-eb4db",
+    "storage_bucket": "sura-eb4db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:636441610129:android:c8a4ef6d9791851c967c30",
+        "android_client_info": {
+          "package_name": "com.example.sura"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "636441610129-7n36ui0nqleue55haa1g9ddb2g0apmlo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwM3NU_Bjj1l2DxcmXiO2eVEZJbbg4Pe8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "636441610129-7n36ui0nqleue55haa1g9ddb2g0apmlo.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "636441610129-tsrp90moeshjcuaae8nocoj5kh03e06i.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.sura"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

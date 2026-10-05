@@ -76,23 +76,70 @@ class DriftConsultationRepository implements ConsultationRepository {
       );
 
   @override
-  Future<void> save(ConsultationRecord r) =>
-      _db.into(_db.consultations).insertOnConflictUpdate(_toCompanion(r));
+  Future<void> save(ConsultationRecord r) => _db.transaction(() async {
+    final previous = await getById(r.id);
+    final saved = r.status == ConsultationStatus.saved;
+    final record = r.copyWith(
+      syncState: saved ? SyncState.pending : r.syncState,
+      clearSyncError: saved,
+      updatedAt: _nextVersion(r.updatedAt, previous?.updatedAt),
+    );
+    await _db
+        .into(_db.consultations)
+        .insertOnConflictUpdate(_toCompanion(record));
+  });
 
   @override
-  Future<void> markValidated(String id) async {
-    final now = DateTime.now();
+  Future<void> markValidated(String id) => _db.transaction(() async {
+    final previous = await getById(id);
+    final now = _nextVersion(DateTime.now(), previous?.updatedAt);
     await (_db.update(_db.consultations)..where((c) => c.id.equals(id))).write(
       ConsultationsCompanion(
         status: Value(ConsultationStatus.saved.name),
         currentStep: const Value('saved'),
         validatedAt: Value(now),
         syncStatus: Value(SyncState.pending.db),
+        syncError: const Value(null),
         updatedAt: Value(now),
       ),
     );
+  });
+
+  @override
+  Future<bool> updateSyncState(
+    String id,
+    SyncState state, {
+    required DateTime expectedUpdatedAt,
+    int? attempts,
+    String? error,
+  }) async {
+    if (expectedUpdatedAt.microsecondsSinceEpoch % 1000000 != 0) return false;
+    final changed =
+        await (_db.update(_db.consultations)..where(
+              (c) => c.id.equals(id) & c.updatedAt.equals(expectedUpdatedAt),
+            ))
+            .write(
+              ConsultationsCompanion(
+                syncStatus: Value(state.db),
+                syncAttempts: attempts == null
+                    ? const Value.absent()
+                    : Value(attempts),
+                syncError: Value(error),
+              ),
+            );
+    return changed == 1;
   }
 
+  // SQLite conserve les dates à la seconde : chaque écriture métier doit
+  // avoir une version distincte pour refuser un ancien accusé de réception.
+  DateTime _nextVersion(DateTime requested, DateTime? previous) {
+    if (previous != null &&
+        requested.millisecondsSinceEpoch ~/ 1000 <=
+            previous.millisecondsSinceEpoch ~/ 1000) {
+      return previous.add(const Duration(seconds: 1));
+    }
+    return requested;
+  }
   // ---------------- mapping ----------------
 
   static T? _enum<T extends Enum>(List<T> values, String? name) {

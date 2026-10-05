@@ -17,6 +17,8 @@ class PatientRecord {
     required this.createdAt,
     required this.updatedAt,
     this.syncState = SyncState.pending,
+    this.syncAttempts = 0,
+    this.syncError,
   });
 
   /// Format SUR-XXXX-XXXX (R1). C'est la seule donnée contenue dans le QR (R2).
@@ -32,6 +34,8 @@ class PatientRecord {
   final DateTime createdAt;
   final DateTime updatedAt;
   final SyncState syncState;
+  final int syncAttempts;
+  final String? syncError;
 
   String get fullName => '$firstName $lastName';
 
@@ -44,6 +48,9 @@ class PatientRecord {
     String? phone,
     DateTime? updatedAt,
     SyncState? syncState,
+    int? syncAttempts,
+    String? syncError,
+    bool clearSyncError = false,
   }) => PatientRecord(
     id: id,
     lastName: lastName ?? this.lastName,
@@ -57,6 +64,8 @@ class PatientRecord {
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncState: syncState ?? this.syncState,
+    syncAttempts: syncAttempts ?? this.syncAttempts,
+    syncError: clearSyncError ? null : (syncError ?? this.syncError),
   );
 }
 
@@ -130,6 +139,7 @@ class ConsultationRecord {
     SyncState? syncState,
     int? syncAttempts,
     String? syncError,
+    bool clearSyncError = false,
     DateTime? updatedAt,
     DateTime? validatedAt,
   }) => ConsultationRecord(
@@ -150,7 +160,7 @@ class ConsultationRecord {
     checklist: checklist ?? this.checklist,
     syncState: syncState ?? this.syncState,
     syncAttempts: syncAttempts ?? this.syncAttempts,
-    syncError: syncError ?? this.syncError,
+    syncError: clearSyncError ? null : (syncError ?? this.syncError),
     createdAt: createdAt,
     updatedAt: updatedAt ?? DateTime.now(),
     validatedAt: validatedAt ?? this.validatedAt,

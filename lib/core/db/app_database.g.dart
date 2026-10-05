@@ -741,6 +741,29 @@ class $PatientsTable extends Patients with TableInfo<$PatientsTable, Patient> {
     requiredDuringInsert: false,
     defaultValue: const Constant('pending'),
   );
+  static const VerificationMeta _syncAttemptsMeta = const VerificationMeta(
+    'syncAttempts',
+  );
+  @override
+  late final GeneratedColumn<int> syncAttempts = GeneratedColumn<int>(
+    'sync_attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _syncErrorMeta = const VerificationMeta(
+    'syncError',
+  );
+  @override
+  late final GeneratedColumn<String> syncError = GeneratedColumn<String>(
+    'sync_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -755,6 +778,8 @@ class $PatientsTable extends Patients with TableInfo<$PatientsTable, Patient> {
     createdAt,
     updatedAt,
     syncStatus,
+    syncAttempts,
+    syncError,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -863,6 +888,21 @@ class $PatientsTable extends Patients with TableInfo<$PatientsTable, Patient> {
         syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
       );
     }
+    if (data.containsKey('sync_attempts')) {
+      context.handle(
+        _syncAttemptsMeta,
+        syncAttempts.isAcceptableOrUnknown(
+          data['sync_attempts']!,
+          _syncAttemptsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sync_error')) {
+      context.handle(
+        _syncErrorMeta,
+        syncError.isAcceptableOrUnknown(data['sync_error']!, _syncErrorMeta),
+      );
+    }
     return context;
   }
 
@@ -920,6 +960,14 @@ class $PatientsTable extends Patients with TableInfo<$PatientsTable, Patient> {
         DriftSqlType.string,
         data['${effectivePrefix}sync_status'],
       )!,
+      syncAttempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sync_attempts'],
+      )!,
+      syncError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_error'],
+      ),
     );
   }
 
@@ -943,6 +991,8 @@ class Patient extends DataClass implements Insertable<Patient> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String syncStatus;
+  final int syncAttempts;
+  final String? syncError;
   const Patient({
     required this.id,
     required this.lastName,
@@ -956,6 +1006,8 @@ class Patient extends DataClass implements Insertable<Patient> {
     required this.createdAt,
     required this.updatedAt,
     required this.syncStatus,
+    required this.syncAttempts,
+    this.syncError,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -974,6 +1026,10 @@ class Patient extends DataClass implements Insertable<Patient> {
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['sync_status'] = Variable<String>(syncStatus);
+    map['sync_attempts'] = Variable<int>(syncAttempts);
+    if (!nullToAbsent || syncError != null) {
+      map['sync_error'] = Variable<String>(syncError);
+    }
     return map;
   }
 
@@ -993,6 +1049,10 @@ class Patient extends DataClass implements Insertable<Patient> {
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       syncStatus: Value(syncStatus),
+      syncAttempts: Value(syncAttempts),
+      syncError: syncError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncError),
     );
   }
 
@@ -1014,6 +1074,8 @@ class Patient extends DataClass implements Insertable<Patient> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      syncAttempts: serializer.fromJson<int>(json['syncAttempts']),
+      syncError: serializer.fromJson<String?>(json['syncError']),
     );
   }
   @override
@@ -1032,6 +1094,8 @@ class Patient extends DataClass implements Insertable<Patient> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'syncStatus': serializer.toJson<String>(syncStatus),
+      'syncAttempts': serializer.toJson<int>(syncAttempts),
+      'syncError': serializer.toJson<String?>(syncError),
     };
   }
 
@@ -1048,6 +1112,8 @@ class Patient extends DataClass implements Insertable<Patient> {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? syncStatus,
+    int? syncAttempts,
+    Value<String?> syncError = const Value.absent(),
   }) => Patient(
     id: id ?? this.id,
     lastName: lastName ?? this.lastName,
@@ -1061,6 +1127,8 @@ class Patient extends DataClass implements Insertable<Patient> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     syncStatus: syncStatus ?? this.syncStatus,
+    syncAttempts: syncAttempts ?? this.syncAttempts,
+    syncError: syncError.present ? syncError.value : this.syncError,
   );
   Patient copyWithCompanion(PatientsCompanion data) {
     return Patient(
@@ -1082,6 +1150,10 @@ class Patient extends DataClass implements Insertable<Patient> {
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
+      syncAttempts: data.syncAttempts.present
+          ? data.syncAttempts.value
+          : this.syncAttempts,
+      syncError: data.syncError.present ? data.syncError.value : this.syncError,
     );
   }
 
@@ -1099,7 +1171,9 @@ class Patient extends DataClass implements Insertable<Patient> {
           ..write('createdByAgentId: $createdByAgentId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('syncStatus: $syncStatus')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('syncAttempts: $syncAttempts, ')
+          ..write('syncError: $syncError')
           ..write(')'))
         .toString();
   }
@@ -1118,6 +1192,8 @@ class Patient extends DataClass implements Insertable<Patient> {
     createdAt,
     updatedAt,
     syncStatus,
+    syncAttempts,
+    syncError,
   );
   @override
   bool operator ==(Object other) =>
@@ -1134,7 +1210,9 @@ class Patient extends DataClass implements Insertable<Patient> {
           other.createdByAgentId == this.createdByAgentId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.syncStatus == this.syncStatus);
+          other.syncStatus == this.syncStatus &&
+          other.syncAttempts == this.syncAttempts &&
+          other.syncError == this.syncError);
 }
 
 class PatientsCompanion extends UpdateCompanion<Patient> {
@@ -1150,6 +1228,8 @@ class PatientsCompanion extends UpdateCompanion<Patient> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<String> syncStatus;
+  final Value<int> syncAttempts;
+  final Value<String?> syncError;
   final Value<int> rowid;
   const PatientsCompanion({
     this.id = const Value.absent(),
@@ -1164,6 +1244,8 @@ class PatientsCompanion extends UpdateCompanion<Patient> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.syncStatus = const Value.absent(),
+    this.syncAttempts = const Value.absent(),
+    this.syncError = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PatientsCompanion.insert({
@@ -1179,6 +1261,8 @@ class PatientsCompanion extends UpdateCompanion<Patient> {
     required DateTime createdAt,
     required DateTime updatedAt,
     this.syncStatus = const Value.absent(),
+    this.syncAttempts = const Value.absent(),
+    this.syncError = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        lastName = Value(lastName),
@@ -1203,6 +1287,8 @@ class PatientsCompanion extends UpdateCompanion<Patient> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<String>? syncStatus,
+    Expression<int>? syncAttempts,
+    Expression<String>? syncError,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1218,6 +1304,8 @@ class PatientsCompanion extends UpdateCompanion<Patient> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (syncStatus != null) 'sync_status': syncStatus,
+      if (syncAttempts != null) 'sync_attempts': syncAttempts,
+      if (syncError != null) 'sync_error': syncError,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1235,6 +1323,8 @@ class PatientsCompanion extends UpdateCompanion<Patient> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<String>? syncStatus,
+    Value<int>? syncAttempts,
+    Value<String?>? syncError,
     Value<int>? rowid,
   }) {
     return PatientsCompanion(
@@ -1250,6 +1340,8 @@ class PatientsCompanion extends UpdateCompanion<Patient> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncStatus: syncStatus ?? this.syncStatus,
+      syncAttempts: syncAttempts ?? this.syncAttempts,
+      syncError: syncError ?? this.syncError,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1293,6 +1385,12 @@ class PatientsCompanion extends UpdateCompanion<Patient> {
     if (syncStatus.present) {
       map['sync_status'] = Variable<String>(syncStatus.value);
     }
+    if (syncAttempts.present) {
+      map['sync_attempts'] = Variable<int>(syncAttempts.value);
+    }
+    if (syncError.present) {
+      map['sync_error'] = Variable<String>(syncError.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1314,6 +1412,8 @@ class PatientsCompanion extends UpdateCompanion<Patient> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
+          ..write('syncAttempts: $syncAttempts, ')
+          ..write('syncError: $syncError, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2943,6 +3043,8 @@ typedef $$PatientsTableCreateCompanionBuilder =
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<String> syncStatus,
+      Value<int> syncAttempts,
+      Value<String?> syncError,
       Value<int> rowid,
     });
 typedef $$PatientsTableUpdateCompanionBuilder =
@@ -2959,6 +3061,8 @@ typedef $$PatientsTableUpdateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<String> syncStatus,
+      Value<int> syncAttempts,
+      Value<String?> syncError,
       Value<int> rowid,
     });
 
@@ -3051,6 +3155,16 @@ class $$PatientsTableFilterComposer
 
   ColumnFilters<String> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncAttempts => $composableBuilder(
+    column: $table.syncAttempts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncError => $composableBuilder(
+    column: $table.syncError,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3148,6 +3262,16 @@ class $$PatientsTableOrderingComposer
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get syncAttempts => $composableBuilder(
+    column: $table.syncAttempts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncError => $composableBuilder(
+    column: $table.syncError,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PatientsTableAnnotationComposer
@@ -3200,6 +3324,14 @@ class $$PatientsTableAnnotationComposer
     column: $table.syncStatus,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get syncAttempts => $composableBuilder(
+    column: $table.syncAttempts,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncError =>
+      $composableBuilder(column: $table.syncError, builder: (column) => column);
 
   Expression<T> consultationsRefs<T extends Object>(
     Expression<T> Function($$ConsultationsTableAnnotationComposer a) f,
@@ -3267,6 +3399,8 @@ class $$PatientsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
+                Value<int> syncAttempts = const Value.absent(),
+                Value<String?> syncError = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PatientsCompanion(
                 id: id,
@@ -3281,6 +3415,8 @@ class $$PatientsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
+                syncAttempts: syncAttempts,
+                syncError: syncError,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3297,6 +3433,8 @@ class $$PatientsTableTableManager
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<String> syncStatus = const Value.absent(),
+                Value<int> syncAttempts = const Value.absent(),
+                Value<String?> syncError = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PatientsCompanion.insert(
                 id: id,
@@ -3311,6 +3449,8 @@ class $$PatientsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 syncStatus: syncStatus,
+                syncAttempts: syncAttempts,
+                syncError: syncError,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

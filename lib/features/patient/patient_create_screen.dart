@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sura/core/db/repository_providers.dart';
-import 'package:sura/features/auth/auth_providers.dart';
+import 'package:sura/features/auth/providers/auth_providers.dart';
 import '../../core/theme/sura_colors.dart';
 import '../../core/widgets/inline_alert.dart';
 import '../../core/widgets/sura_button.dart';
@@ -47,6 +47,7 @@ class _State extends ConsumerState<PatientCreateScreen> {
     });
     try {
       final agentId = ref.read(currentAgentIdProvider);
+      if (agentId == null) throw StateError('Aucun agent connecté.');
       final p = await ref
           .read(patientRepositoryProvider)
           .create(

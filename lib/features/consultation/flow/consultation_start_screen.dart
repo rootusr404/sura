@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sura/core/db/repository_providers.dart';
-import 'package:sura/features/auth/auth_providers.dart';
+import 'package:sura/features/auth/providers/auth_providers.dart';
 import 'package:sura/core/theme/sura_colors.dart';
 import 'package:sura/core/widgets/sura_button.dart';
 import 'package:sura/features/patient/patient_providers.dart';
@@ -30,15 +30,25 @@ class _State extends ConsumerState<ConsultationStartScreen> {
   }
 
   Future<void> _start(String patientId) async {
-    if (_busy) return;
+    if (_busy || !mounted) return;
     setState(() => _busy = true);
-    final c = await ref
-        .read(consultationRepositoryProvider)
-        .createDraft(
-          patientId: patientId,
-          agentId: ref.read(currentAgentIdProvider),
+    try {
+      final agentId = ref.read(currentAgentIdProvider);
+      if (agentId == null) throw StateError('Aucun agent connecté.');
+      final c = await ref
+          .read(consultationRepositoryProvider)
+          .createDraft(patientId: patientId, agentId: agentId);
+      if (mounted) context.go(ConsultationStep.consent.path(c.id));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impossible de créer la consultation.')),
         );
-    if (mounted) context.go(ConsultationStep.consent.path(c.id));
+        context.go('/patients');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override

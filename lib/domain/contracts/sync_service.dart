@@ -10,6 +10,6 @@ abstract class SyncService {
   /// Envoie tout ce qui est en attente (patients d'abord, puis consultations).
   Future<void> syncPending();
 
-  /// Réessaie une consultation en erreur.
-  Future<void> retry(String consultationId);
+  /// Réessaie un patient ou une consultation en erreur, identifié par son ID.
+  Future<void> retry(String recordId);
 }

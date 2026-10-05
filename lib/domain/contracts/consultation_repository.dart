@@ -1,4 +1,5 @@
 import '../models/records.dart';
+import '../models/enums.dart';
 
 /// Propriétaire : Membre 1 (F-02). Implémentation finale : Drift.
 /// Tous les écrans du parcours lisent et écrivent la consultation ICI,
@@ -19,4 +20,18 @@ abstract class ConsultationRepository {
 
   /// R9 : passe en « saved », horodate, syncState = pending. Sauvegarde locale d'abord.
   Future<void> markValidated(String id);
+
+  /// Mise à jour atomique : un accusé de réception ancien ne doit jamais
+  /// marquer une version modifiée pendant l'envoi comme synchronisée.
+  /// Persiste état, tentatives et erreur dans une seule écriture conditionnelle.
+  /// attempts == null conserve le compteur; error == null efface l'erreur.
+  /// Retourne false si la version a changé, sans aucune modification.
+  /// Ne modifie ni les données métier ni updatedAt.
+  Future<bool> updateSyncState(
+    String id,
+    SyncState state, {
+    required DateTime expectedUpdatedAt,
+    int? attempts,
+    String? error,
+  });
 }

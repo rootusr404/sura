@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /agents/{uid} {
+      // Le profil est créé par FirebaseAuthService lors de l'inscription.
+      // Ce droit porte uniquement sur ce document, pas ses sous-collections.
+      allow read, write: if isOwner(uid);
+
+      match /patients/{patientId} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /consultations/{consultationId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // Toute autre collection ou sous-collection est inaccessible au client.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -34,6 +34,8 @@ class Patients extends Table {
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
+  IntColumn get syncAttempts => integer().withDefault(const Constant(0))();
+  TextColumn get syncError => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -87,5 +89,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(patients, patients.syncAttempts);
+        await m.addColumn(patients, patients.syncError);
+      }
+    },
+  );
 }

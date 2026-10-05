@@ -96,6 +96,31 @@ class DriftPatientRepository implements PatientRepository {
         .toList();
   }
 
+  @override
+  Future<bool> updateSyncState(
+    String id,
+    SyncState state, {
+    required DateTime expectedUpdatedAt,
+    int? attempts,
+    String? error,
+  }) async {
+    if (expectedUpdatedAt.microsecondsSinceEpoch % 1000000 != 0) return false;
+    final changed =
+        await (_db.update(_db.patients)..where(
+              (p) => p.id.equals(id) & p.updatedAt.equals(expectedUpdatedAt),
+            ))
+            .write(
+              PatientsCompanion(
+                syncStatus: Value(state.db),
+                syncAttempts: attempts == null
+                    ? const Value.absent()
+                    : Value(attempts),
+                syncError: Value(error),
+              ),
+            );
+    return changed == 1;
+  }
+
   static PatientRecord _fromRow(Patient p) => PatientRecord(
     id: p.id,
     lastName: p.lastName,
@@ -109,5 +134,7 @@ class DriftPatientRepository implements PatientRepository {
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
     syncState: SyncStateX.fromDb(p.syncStatus),
+    syncAttempts: p.syncAttempts,
+    syncError: p.syncError,
   );
 }

@@ -1,4 +1,5 @@
 import '../models/records.dart';
+import '../models/enums.dart';
 
 /// Propriétaire : Membre 1 (F-02). Implémentation finale : Drift.
 abstract class PatientRepository {
@@ -19,4 +20,17 @@ abstract class PatientRepository {
 
   /// Recherche par nom, prénom, village ou identifiant (insensible à la casse).
   Future<List<PatientRecord>> search(String query);
+
+  /// Mise à jour atomique de l'état, uniquement pour la version envoyée.
+  /// Persiste état, tentatives et erreur dans une seule écriture conditionnelle.
+  /// attempts == null conserve le compteur; error == null efface l'erreur.
+  /// Retourne false si la version a changé, sans aucune modification.
+  /// Ne modifie ni les données métier ni updatedAt.
+  Future<bool> updateSyncState(
+    String id,
+    SyncState state, {
+    required DateTime expectedUpdatedAt,
+    int? attempts,
+    String? error,
+  });
 }
