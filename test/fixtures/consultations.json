@@ -1,0 +1,80 @@
+[
+  {
+    "id": "scenario-01-rhume",
+    "title": "Cas bénin : rhume chez une adulte",
+    "patient": {
+      "fictional": true,
+      "name": "Aïssatou Ba",
+      "ageYears": 28,
+      "sex": "F",
+      "village": "Village-Test-A"
+    },
+    "transcript": "Consultation de madame Aïssatou Ba, 28 ans, du village de Test A. Elle vient pour un rhume. Le nez coule et elle éternue beaucoup depuis 2 jours. Elle a aussi une toux légère. Elle n'a pas de fièvre, la température est de 36,8 degrés. Le pouls est à 76. Elle n'a aucune allergie connue. Elle ne prend aucun médicament. Elle n'a pas d'antécédents particuliers. Elle mange et boit normalement. Je lui conseille du repos et de boire beaucoup d'eau.",
+    "expected": {
+      "chiefComplaint": "Rhume",
+      "symptoms": ["nez qui coule", "éternuements", "toux légère"],
+      "duration": "2 jours",
+      "durationContains": "2 jours",
+      "temperatureC": 36.8,
+      "pulse": 76,
+      "allergies": "aucune",
+      "medications": "aucun",
+      "history": "aucun",
+      "missingCodes": [],
+      "urgency": "low",
+      "urgencyReasonContains": "Aucun signe de gravité"
+    }
+  },
+  {
+    "id": "scenario-02-fievre-adulte",
+    "title": "Urgence modérée : fièvre de 3 jours chez une adulte",
+    "patient": {
+      "fictional": true,
+      "name": "Fatou Keïta",
+      "ageYears": 34,
+      "sex": "F",
+      "village": "Village-Test-B"
+    },
+    "transcript": "Consultation de madame Fatou Keïta, 34 ans, du village de Test B. Elle vient pour de la fièvre. Cela dure depuis 3 jours. Elle a aussi de violents maux de tête et une toux sèche. La température mesurée est de 39,4 degrés. Le pouls est à 98. Elle allaite son enfant de 8 mois. Elle n'a aucune allergie connue. Elle a pris du paracétamol hier sans amélioration. Elle n'a pas d'antécédents. Elle boit bien et marche normalement.",
+    "expected": {
+      "chiefComplaint": "Fièvre",
+      "symptoms": ["fièvre", "maux de tête", "toux sèche"],
+      "duration": "3 jours",
+      "durationContains": "3 jours",
+      "temperatureC": 39.4,
+      "pulse": 98,
+      "allergies": "aucune",
+      "medications": "paracétamol",
+      "history": "aucun",
+      "missingCodes": [],
+      "urgency": "moderate",
+      "urgencyReasonContains": "Fièvre depuis 3 jours"
+    }
+  },
+  {
+    "id": "scenario-03-convulsion-enfant",
+    "title": "Urgence élevée : convulsion et forte fièvre chez un enfant",
+    "patient": {
+      "fictional": true,
+      "name": "Amadou Sow",
+      "ageYears": 4,
+      "sex": "M",
+      "village": "Village-Test-C"
+    },
+    "transcript": "Consultation de l'enfant Amadou Sow, 4 ans, du village de Test C, amené par sa mère. Il a de la fièvre depuis 2 jours avec des frissons. Ce matin, il a fait une convulsion. La température mesurée est de 40,1 degrés. Le pouls est à 110. Il respire vite, 34 par minute. Il pèse 14 kilos. Il est drépanocytaire, c'est un antécédent connu. Il est allergique à la pénicilline. Il refuse de manger. Il faut le référer rapidement.",
+    "expected": {
+      "chiefComplaint": "Fièvre avec convulsion",
+      "symptoms": ["fièvre", "frissons", "convulsion"],
+      "duration": "2 jours",
+      "durationContains": "2 jours",
+      "temperatureC": 40.1,
+      "pulse": 110,
+      "allergies": "pénicilline",
+      "medications": null,
+      "history": "drépanocytose",
+      "missingCodes": ["medications"],
+      "urgency": "high",
+      "urgencyReasonContains": "Convulsions"
+    }
+  }
+]
