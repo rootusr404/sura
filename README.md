@@ -86,7 +86,7 @@ git checkout develop
 flutter pub get
 flutter run
 ```
-L'application démarre même sans Firebase : si l'initialisation échoue, elle continue en mode local.
+La première connexion d'un agent se fait **en ligne** (Firebase). Ensuite, l'application fonctionne sans réseau.
 
 ### Vérifier le code
 ```bash
