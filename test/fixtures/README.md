@@ -19,4 +19,8 @@ Format cible d'une entrée :
   }
 }
 ```
+Le fichier réel contient 3 scénarios (faible, modéré, élevé) et plus de champs « expected » que
+l'exemple ci-dessus (symptômes, constantes, allergies…). Il est vérifié contre les règles réelles par
+`consultations_fixtures_test.dart`. Description lisible : `docs/demo/SCENARIOS.md`.
+
 Aucune donnée réelle de patient. Jamais.
