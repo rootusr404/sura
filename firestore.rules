@@ -5,17 +5,104 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // Texte facultatif : absent ou nul, sinon une chaîne d'une taille raisonnable.
+    function optString(v, max) {
+      return v == null || (v is string && v.size() <= max);
+    }
+
+    function optTimestamp(v) {
+      return v == null || v is timestamp;
+    }
+
+    // Profil créé à l'inscription (FirebaseAuthService.register). Liste fermée de champs :
+    // un champ inconnu (par exemple un droit d'administrateur) est refusé.
+    function validProfile(uid) {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'agent_id', 'email', 'prenom', 'nom', 'telephone_professionnel',
+          'region', 'district', 'poste_de_sante', 'role_clinique', 'created_at'
+        ])
+        && d.keys().hasAll(['agent_id', 'email', 'created_at'])
+        && d.agent_id == uid
+        && d.email is string && d.email.size() <= 320
+        && d.created_at is timestamp;
+    }
+
+    // Champs envoyés par la synchronisation (firestore_sync_remote_store.dart).
+    // Liste fermée : aucun champ audio ni chemin local ne peut être écrit.
+    function validPatient(uid, patientId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'id', 'lastName', 'firstName', 'ageYears', 'ageRecordedAt', 'sex',
+          'village', 'phone', 'createdByAgentId', 'createdAt', 'updatedAt'
+        ])
+        && d.keys().hasAll([
+          'id', 'lastName', 'firstName', 'ageYears', 'ageRecordedAt', 'sex',
+          'village', 'createdByAgentId', 'createdAt', 'updatedAt'
+        ])
+        && d.id == patientId
+        && d.createdByAgentId == uid
+        && d.lastName is string && d.lastName.size() <= 200
+        && d.firstName is string && d.firstName.size() <= 200
+        && d.village is string && d.village.size() <= 200
+        && optString(d.get('phone', null), 50)
+        && d.ageYears is int && d.ageYears >= 0 && d.ageYears <= 130
+        && d.sex in ['F', 'M']
+        && d.ageRecordedAt is timestamp
+        && d.createdAt is timestamp
+        && d.updatedAt is timestamp;
+    }
+
+    function validConsultation(uid, consultationId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'id', 'patientId', 'agentId', 'status', 'step', 'consent', 'consentAt',
+          'transcriptRaw', 'transcriptEdited', 'structured', 'missing',
+          'urgencyProposal', 'urgencyFinal', 'urgencyOverrideReason', 'checklist',
+          'createdAt', 'updatedAt', 'validatedAt'
+        ])
+        && d.keys().hasAll([
+          'id', 'patientId', 'agentId', 'status', 'step', 'missing', 'checklist',
+          'createdAt', 'updatedAt'
+        ])
+        && d.id == consultationId
+        && d.agentId == uid
+        && d.patientId is string && d.patientId.size() <= 100
+        && d.status in ['draft', 'saved']
+        && d.step is string && d.step.size() <= 50
+        && (d.get('consent', null) == null || d.consent in ['granted', 'refused'])
+        && optTimestamp(d.get('consentAt', null))
+        && optString(d.get('transcriptRaw', null), 50000)
+        && optString(d.get('transcriptEdited', null), 50000)
+        && (d.get('structured', null) == null || d.structured is map)
+        && d.missing is list
+        && (d.get('urgencyProposal', null) == null || d.urgencyProposal is map)
+        && (d.get('urgencyFinal', null) == null
+            || d.urgencyFinal in ['high', 'moderate', 'low'])
+        && optString(d.get('urgencyOverrideReason', null), 1000)
+        && d.checklist is map
+        && d.createdAt is timestamp
+        && d.updatedAt is timestamp
+        && optTimestamp(d.get('validatedAt', null));
+    }
+
     match /agents/{uid} {
-      // Le profil est créé par FirebaseAuthService lors de l'inscription.
-      // Ce droit porte uniquement sur ce document, pas ses sous-collections.
-      allow read, write: if isOwner(uid);
+      // Lecture et écriture par le propriétaire seulement. Aucune suppression : les
+      // données ne se perdent jamais côté serveur (R10).
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validProfile(uid);
+      allow delete: if false;
 
       match /patients/{patientId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validPatient(uid, patientId);
+        allow delete: if false;
       }
 
       match /consultations/{consultationId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validConsultation(uid, consultationId);
+        allow delete: if false;
       }
     }
 

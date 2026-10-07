@@ -93,3 +93,17 @@ Références officielles :
 - [Structure et portée des règles](https://firebase.google.com/docs/firestore/security/rules-structure)
 - [Tests des règles avec émulateur](https://firebase.google.com/docs/rules/unit-tests)
 - [Rules Playground](https://firebase.google.com/docs/rules/simulator)
+
+## Mise à jour : règles renforcées et testées sur l'émulateur
+
+Les règles valident maintenant le **contenu** des documents, en plus de leur propriétaire :
+
+- liste fermée de champs pour le profil, les patients et les consultations : un champ audio ou inconnu est refusé ;
+- `id`, `createdByAgentId` et `agentId` doivent correspondre au chemin et au compte connecté ;
+- types et valeurs permises (âge entier de 0 à 130, sexe `F` ou `M`, statut, niveau d'urgence, consentement) et taille maximale des textes ;
+- suppression refusée côté client.
+
+28 tests automatisés (`firestore-tests/`, `npm test`) vérifient ces règles contre l'émulateur local, avec des documents identiques à ceux de l'application. Voir `firestore-tests/README.md`.
+
+**Toujours à faire** : déployer ces règles sur le projet réel, puis tester avec deux comptes sur téléphone. Les règles de ce dépôt ne sont **pas déployées** tant que `firebase deploy --only firestore:rules` n'a pas été lancé par le Membre 4.
+
