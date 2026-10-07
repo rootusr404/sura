@@ -4,6 +4,7 @@ on:
     branches: [develop, main]
   push:
     branches: [develop, main]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -18,3 +19,12 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      - name: Build web preview
+        run: flutter build web --release
+      - name: Upload web preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: sura-web-preview
+          path: build/web/
+          if-no-files-found: error
+          retention-days: 7
