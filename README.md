@@ -54,7 +54,7 @@ SŪRA transforme le téléphone de l'agent en assistant qui **fonctionne sans r�
 | Niveau d'urgence avec raisons, modifiable avec motif | ✅ |
 | Récapitulatif, validation par 5 cases, sauvegarde locale | ✅ |
 | Synchronisation Firestore (patients avant consultations, réessai, aucune perte) | ✅ |
-| Règles de sécurité Firestore (un agent ne voit que ses données) | 🟡 écrites, déploiement et test à confirmer |
+| Règles de sécurité Firestore (un agent ne voit que ses données, contenu validé, aucun champ audio) | 🟡 écrites et testées sur l'émulateur (28 tests), **déploiement sur le projet réel à confirmer** |
 | Enregistrement audio, transcription et extraction automatique | 🚧 en cours d'intégration |
 | Scan de QR code, chiffrement de la base | ⏳ si le temps le permet |
 
@@ -111,11 +111,21 @@ dart run build_runner build --delete-conflicting-outputs
 
 ## Architecture en bref
 
-- **Flutter**, une structure par fonctionnalité (`lib/features/`), **Riverpod** pour l'état, **go_router** pour la navigation.
-- **Drift** (SQLite) est la source de vérité sur le téléphone.
-- **Firebase** : authentification par e-mail, **Cloud Firestore** pour la synchronisation.
-- `lib/domain/` contient les **contrats** (interfaces) et les modèles partagés. Chaque module est développé contre ces contrats, avec des versions simulées (« fakes ») remplaçables en une ligne.
+Une architecture **en couches allégée, inspirée de la Clean Architecture** :
+
+| Couche | Rôle | Où |
+|---|---|---|
+| **Domaine** | Modèles et **contrats** (interfaces). Du Dart pur : aucun import de Flutter, Drift ou Firebase. | `lib/domain/` |
+| **Données** | Implémentations des contrats : base locale **Drift** (SQLite), synchronisation **Cloud Firestore**. | `lib/core/db/`, `lib/features/sync/` |
+| **Présentation** | Écrans et providers **Riverpod**, navigation **go_router**. Les écrans de consultation parlent aux contrats, jamais directement à Drift ou Firestore. | `lib/features/` |
+
+- Chaque module est développé contre un contrat, avec une version simulée (« fake ») remplaçable en **une ligne**.
 - Les règles métier (informations manquantes, urgence) sont des **fonctions pures et testées**.
+- **Offline-first** : Drift est la source de vérité sur le téléphone, la synchronisation est une file d'attente qui ne perd aucune donnée.
+- **Null safety** de Dart et analyse statique (`flutter analyze`) sans avertissement exigée avant chaque fusion.
+- **Sécurité Firebase** : authentification par e-mail, code PIN local, et règles Firestore qui limitent chaque agent à ses propres données (tests dans `firestore-tests/`).
+
+Nous n'appliquons pas la Clean Architecture « stricte » (pas de couche de cas d'usage séparée) : c'est un choix assumé pour tenir le délai.
 
 Détails : [docs/02_ARCHITECTURE_ET_CHOIX.md](docs/02_ARCHITECTURE_ET_CHOIX.md).
 
@@ -149,11 +159,13 @@ Trois scénarios fictifs (urgence faible, modérée, élevée) sont décrits dan
 
 | Membre | Rôle | Nom |
 |---|---|---|
-| 1 | Lead : fondations, patients, consentement | à compléter |
-| 2 | Consultation : enregistrement, transcription, structuration | à compléter |
-| 3 | Informations manquantes, urgence, validation, tests | à compléter |
-| 4 | Authentification, PIN, synchronisation, Firebase | à compléter |
-| 5 | Données de démonstration, documentation, présentation | à compléter |
+| 1 | Lead : fondations, patients, consentement | rootusr404 (GitHub) |
+| 2 | Consultation : enregistrement, transcription, structuration | Cephas |
+| 3 | Informations manquantes, urgence, validation, tests | Yannick |
+| 4 | Authentification, PIN, synchronisation, Firebase | Banimpo (GitHub) |
+| 5 | Données de démonstration, documentation, présentation | Yannick |
+
+> Les noms de famille et les pays peuvent être ajoutés ici : l'équipe est composée de profils variés (développement, architecture, sécurité, design et présentation).
 
 ---
 
