@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "283247980694",
+    "project_id": "sura-dev-2292d",
+    "storage_bucket": "sura-dev-2292d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:283247980694:android:d16b773f5046b23ee952b7",
+        "android_client_info": {
+          "package_name": "com.sura.sura_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzoTgoEWK8citS4fw_ga1y5sPZSqNFSF8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

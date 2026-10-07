@@ -1,0 +1,51 @@
+name: sura_app
+description: SŪRA - assistant de consultation offline-first (MVP hackathon)
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.4.0
+
+# Versions volontairement libres ("any") : le résolveur choisit des versions compatibles.
+# En cas de conflit, utilisez `flutter pub add <paquet>` pour laisser Flutter proposer une version.
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: any
+  go_router: any
+  drift: any
+  drift_flutter: any
+  firebase_core: any
+  firebase_auth: any
+  cloud_firestore: any
+  firebase_crashlytics: any
+  connectivity_plus: any
+  flutter_secure_storage: any
+  shared_preferences: any
+  permission_handler: ^10.4.5
+  uuid: any
+  crypto: any
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^7.4.2
+  local_auth: ^3.0.2
+  vosk_flutter: ^0.3.48
+  record: ^7.1.1
+  http: ^0.13.6
+  path_provider: ^2.1.6
+  # A brancher apres les POC (voir README) :
+  # record: any          # enregistrement audio reel
+  # mobile_scanner: any  # lecture du QR
+  # qr_flutter: any      # affichage du QR
+  # local_auth: any      # biometrie
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: any
+  drift_dev: any
+  build_runner: any
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/models/
