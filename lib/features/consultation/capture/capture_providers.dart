@@ -3,10 +3,15 @@ import 'package:sura/domain/contracts/audio_recorder_service.dart';
 import 'package:sura/domain/contracts/information_extractor.dart';
 import 'package:sura/domain/contracts/transcription_service.dart';
 import 'package:sura/domain/fakes/fake_services.dart';
+import 'package:sura/services/ai_local/audio_recorder_service.dart';
+import 'package:sura/services/ai_local/information_extractor_adapter.dart';
 
 // PROPRIÉTAIRE : Membre 2 (C-02, C-03, C-04). Remplacer les fakes un par un.
-final audioRecorderProvider = Provider<AudioRecorderService>(
-  (ref) => FakeAudioRecorderService(),
+final audioRecorderProvider = Provider.family<AudioRecorderService, bool>(
+  (ref, consentGranted) => ConsentGatedAudioRecorderService(
+    consentGranted: consentGranted,
+    delegate: LocalAudioRecorderService(),
+  ),
 );
 
 final transcriptionServiceProvider = Provider<TranscriptionService>(
@@ -14,5 +19,5 @@ final transcriptionServiceProvider = Provider<TranscriptionService>(
 );
 
 final informationExtractorProvider = Provider<InformationExtractor>(
-  (ref) => FakeInformationExtractor(),
+  (ref) => const RuleBasedInformationExtractor(),
 );
