@@ -1,14 +1,117 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Un agent n'accede qu'a ses propres donnees : agents/{uid}/patients|consultations/...
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Texte facultatif : absent ou nul, sinon une chaîne d'une taille raisonnable.
+    function optString(v, max) {
+      return v == null || (v is string && v.size() <= max);
+    }
+
+    function optTimestamp(v) {
+      return v == null || v is timestamp;
+    }
+
+    // Le document agents/{uid} reçoit deux écritures fusionnées (merge) :
+    //  - à l'inscription (AuthService) : email, createdAt ;
+    //  - à l'enregistrement du profil (ProfileService) : fullName, phone, region,
+    //    healthPost, role, email, confidentialityAcceptedAt, agentCode, profileUpdatedAt.
+    // Liste fermée de champs : un champ inconnu (par exemple un droit d'administrateur)
+    // est refusé.
+    function validProfile() {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'email', 'createdAt', 'fullName', 'phone', 'region', 'healthPost', 'role',
+          'confidentialityAcceptedAt', 'agentCode', 'profileUpdatedAt'
+        ])
+        && optString(d.get('email', null), 320)
+        && optString(d.get('fullName', null), 200)
+        && optString(d.get('phone', null), 50)
+        && optString(d.get('region', null), 200)
+        && optString(d.get('healthPost', null), 200)
+        && optString(d.get('role', null), 200)
+        && optString(d.get('confidentialityAcceptedAt', null), 40)
+        && optString(d.get('agentCode', null), 40)
+        && optTimestamp(d.get('createdAt', null))
+        && optTimestamp(d.get('profileUpdatedAt', null));
+    }
+
+    // Champs envoyés par SyncService (patients). Aucun champ audio ni chemin local.
+    function validPatient(uid, patientId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'id', 'familyName', 'firstName', 'ageYears', 'ageRecordedAt', 'sex',
+          'village', 'createdBy', 'createdAt', 'syncedAt'
+        ])
+        && d.keys().hasAll([
+          'id', 'familyName', 'firstName', 'ageYears', 'ageRecordedAt', 'sex',
+          'createdBy', 'createdAt'
+        ])
+        && d.id == patientId
+        && d.createdBy == uid
+        && d.familyName is string && d.familyName.size() <= 200
+        && d.firstName is string && d.firstName.size() <= 200
+        && optString(d.get('village', null), 200)
+        && d.ageYears is int && d.ageYears >= 0 && d.ageYears <= 130
+        && d.sex in ['F', 'M', 'O']
+        && d.ageRecordedAt is string && d.ageRecordedAt.size() <= 40
+        && d.createdAt is string && d.createdAt.size() <= 40
+        && optTimestamp(d.get('syncedAt', null));
+    }
+
+    // Champs envoyés par SyncService (consultations). La transcription est facultative
+    // (option kUploadTranscript) ; l'audio n'est jamais envoyé.
+    function validConsultation(uid, consultationId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'id', 'patientId', 'agentId', 'mode', 'consent', 'consentAt', 'structured',
+          'urgencyProposed', 'urgencyFinal', 'reasons', 'transcript', 'validatedAt',
+          'createdAt', 'syncedAt'
+        ])
+        && d.keys().hasAll([
+          'id', 'patientId', 'agentId', 'mode', 'structured', 'reasons', 'createdAt'
+        ])
+        && d.id == consultationId
+        && d.agentId == uid
+        && d.patientId is string && d.patientId.size() <= 100
+        && d.mode in ['voice', 'manual']
+        && (d.get('consent', null) == null || d.consent in ['granted', 'refused'])
+        && optString(d.get('consentAt', null), 40)
+        && d.structured is string && d.structured.size() <= 200000
+        && (d.get('urgencyProposed', null) == null
+            || (d.urgencyProposed is int && d.urgencyProposed >= 0 && d.urgencyProposed <= 2))
+        && (d.get('urgencyFinal', null) == null
+            || (d.urgencyFinal is int && d.urgencyFinal >= 0 && d.urgencyFinal <= 2))
+        && d.reasons is string && d.reasons.size() <= 20000
+        && optString(d.get('transcript', null), 50000)
+        && optString(d.get('validatedAt', null), 40)
+        && d.createdAt is string && d.createdAt.size() <= 40
+        && optTimestamp(d.get('syncedAt', null));
+    }
+
     match /agents/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-      match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+      // Lecture et écriture par le propriétaire seulement. Aucune suppression côté
+      // client : les données ne se perdent jamais côté serveur (R10).
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validProfile();
+      allow delete: if false;
+
+      match /patients/{patientId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validPatient(uid, patientId);
+        allow delete: if false;
+      }
+
+      match /consultations/{consultationId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validConsultation(uid, consultationId);
+        allow delete: if false;
       }
     }
-    // Tout le reste est interdit.
+
+    // Toute autre collection ou sous-collection est inaccessible au client.
     match /{document=**} {
       allow read, write: if false;
     }

@@ -1,0 +1,15 @@
+{
+  "name": "sura-firestore-rules-tests",
+  "private": true,
+  "type": "module",
+  "description": "Tests des règles Firestore de SŪRA (S-05), exécutés contre l'émulateur local. Projet fictif : aucun accès au projet réel.",
+  "scripts": {
+    "pretest": "node copy-rules.mjs",
+    "test": "firebase emulators:exec --config firebase.test.json --only firestore --project demo-sura \"node --test\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.19.0",
+    "firebase-tools": "^15.32.1"
+  }
+}
