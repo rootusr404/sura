@@ -48,8 +48,7 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
 
     if (widget.initialText.isEmpty) {
       final mockText = _transcriptionService is LocalTranscriptionService
-          ? (_transcriptionService as LocalTranscriptionService)
-                .mockTextOverride
+          ? _transcriptionService.mockTextOverride
           : null;
 
       if (mockText != null && mockText.isNotEmpty) {
@@ -169,7 +168,7 @@ class _TranscriptionScreenState extends State<TranscriptionScreen> {
                             ),
                             TextSpan(
                               text: _hasEngineError
-                                  ? '— Moteur indisponible. Saisie manuelle activée.'
+                                  ? '— ${_errorMessage ?? 'Moteur indisponible. Saisie manuelle activée.'}'
                                   : '— vérifiez et corrigez avant de continuer (R4).',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w500,

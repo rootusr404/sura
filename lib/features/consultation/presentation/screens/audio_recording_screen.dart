@@ -56,21 +56,25 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
     // 2. Démarrage de l'enregistrement avec capture de la permission micro
     try {
       await _recorder.startRecording(consentGiven: widget.consentGiven);
+      if (!mounted) return;
       setState(() {
         _isMicDenied = false;
         _errorMessage = null;
       });
     } on ConsentRequiredException catch (e) {
+      if (!mounted) return;
       setState(() {
         _isConsentMissing = true;
         _errorMessage = e.message;
       });
     } on MicrophonePermissionDeniedException catch (e) {
+      if (!mounted) return;
       setState(() {
         _isMicDenied = true;
         _errorMessage = e.message;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString();
       });
@@ -129,7 +133,11 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                     borderRadius: BorderRadius.circular(36),
                   ),
                   child: const Center(
-                    child: Icon(Icons.gavel_rounded, color: SuraTheme.triageHigh, size: 36),
+                    child: Icon(
+                      Icons.gavel_rounded,
+                      color: SuraTheme.triageHigh,
+                      size: 36,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -196,7 +204,11 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                     borderRadius: BorderRadius.circular(32),
                   ),
                   child: const Center(
-                    child: Icon(Icons.mic_off_rounded, color: SuraTheme.tealPrimary, size: 32),
+                    child: Icon(
+                      Icons.mic_off_rounded,
+                      color: SuraTheme.tealPrimary,
+                      size: 32,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -215,7 +227,11 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                   child: Text(
                     'Sans micro, SŪRA ne peut pas enregistrer la consultation. '
                     'Autorisez-le dans les réglages, ou saisissez à la main.',
-                    style: TextStyle(fontSize: 13.5, color: SuraTheme.slateMuted, height: 1.4),
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      color: SuraTheme.slateMuted,
+                      height: 1.4,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -230,6 +246,57 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                   child: const Text('Saisir sans enregistrement (Repli)'),
                 ),
                 const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        appBar: StepHeader(
+          currentStep: 2,
+          title: 'Étape 2',
+          onQuit: () => Navigator.of(context).maybePop(),
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: SuraTheme.triageHigh,
+                  size: 48,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Enregistrement impossible',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: SuraTheme.ink,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: SuraTheme.slateMuted),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _checkAndStart,
+                  child: const Text('Réessayer'),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: widget.onManualInputFallback,
+                  child: const Text('Continuer sans audio'),
+                ),
               ],
             ),
           ),
@@ -254,7 +321,10 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
             final isRecording = state.status == RecordingStatus.recording;
 
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 16.0,
+              ),
               child: Column(
                 children: [
                   const SizedBox(height: 10),
@@ -268,7 +338,9 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    isPaused ? 'Enregistrement en pause' : 'Enregistrement en cours',
+                    isPaused
+                        ? 'Enregistrement en pause'
+                        : 'Enregistrement en cours',
                     style: const TextStyle(
                       fontSize: 13,
                       color: SuraTheme.slateMuted,
@@ -308,7 +380,7 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: SuraTheme.triageHigh.withOpacity(0.35),
+                            color: SuraTheme.triageHigh.withValues(alpha: 0.35),
                             blurRadius: 18,
                             spreadRadius: 4,
                           ),
@@ -340,7 +412,9 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                       OutlinedButton.icon(
                         onPressed: () => _togglePauseResume(state),
                         icon: Icon(
-                          isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                          isPaused
+                              ? Icons.play_arrow_rounded
+                              : Icons.pause_rounded,
                           size: 20,
                         ),
                         label: Text(isPaused ? 'Reprendre' : 'Pause'),
@@ -354,14 +428,21 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
                   // Réassurance confidentialité et traitement 100% hors ligne
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: SuraTheme.softTeal,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
                       children: const [
-                        Icon(Icons.lock_outline, size: 16, color: SuraTheme.tealPrimary),
+                        Icon(
+                          Icons.lock_outline,
+                          size: 16,
+                          color: SuraTheme.tealPrimary,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(

@@ -22,7 +22,6 @@ class AudioWaveform extends StatefulWidget {
 class _AudioWaveformState extends State<AudioWaveform>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  final Random _random = Random(42);
 
   @override
   void initState() {
@@ -51,8 +50,11 @@ class _AudioWaveformState extends State<AudioWaveform>
           children: List.generate(barCount, (index) {
             double height = 6.0;
             if (widget.isRecording && !widget.isPaused) {
-              final wave = sin((index / barCount) * pi + (_controller.value * pi));
-              final dynamicAmp = (widget.amplitude * 28.0) + (wave.abs() * 18.0);
+              final wave = sin(
+                (index / barCount) * pi + (_controller.value * pi),
+              );
+              final dynamicAmp =
+                  (widget.amplitude * 28.0) + (wave.abs() * 18.0);
               height = max(6.0, dynamicAmp);
             } else if (widget.isPaused) {
               height = 8.0;
@@ -64,8 +66,8 @@ class _AudioWaveformState extends State<AudioWaveform>
               margin: const EdgeInsets.symmetric(horizontal: 2.5),
               decoration: BoxDecoration(
                 color: widget.isPaused
-                    ? SuraTheme.slateMuted.withOpacity(0.5)
-                    : SuraTheme.tealPrimary.withOpacity(0.85),
+                    ? SuraTheme.slateMuted.withValues(alpha: 0.5)
+                    : SuraTheme.tealPrimary.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(4),
               ),
             );
