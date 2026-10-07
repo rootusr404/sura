@@ -550,7 +550,7 @@ Livre un aperçu, puis liste les écarts éventuels avec la spécification.
 |---|---|
 | **Film principal** | MP4 H.264, 1920×1080, 30 i/s, 12 à 16 Mbit/s, audio AAC 320 kbit/s, −14 LUFS |
 | **Sous-titres** | `sura-fr.srt` (+ `sura-en.srt` si décidé) |
-| **Version courte** | Teaser de 60 s au total : extraits de S1 (8 s), S2 (14 s), S6 (16 s), S8 (14 s) et S11 (5 s), voix off raccourcie |
+| **Version courte** | Teaser d'environ 60 s (57 s) : extraits de S1 (8 s), S2 (14 s), S6 (16 s), S8 (14 s) et S11 (5 s), voix off raccourcie |
 | **Version verticale** | 9:16 (1080×1920) pour les réseaux sociaux, mêmes scènes recadrées |
 | **Vignette** | PNG 1280×720 : logo, fil, une pastille d'urgence |
 | **Sources** | Dossier `sources/` : projet d'animation, polices, voix brute, musique + licence |
